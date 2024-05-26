@@ -21,12 +21,21 @@ import java.util.concurrent.TimeUnit;
 public class MainPageTest {
     private WebDriver driver;
     private MainPage mainPage;
+    JavascriptExecutor js;
     Actions actions;
     private static final String URL = "https://www.zehrs.ca/";
     private static final int MAX_PER_PAGE = 5;
 
     private void waitInSeconds(int seconds) {
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(seconds));
+    }
+
+    private void clickByJs(WebElement element) {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(d -> element.isDisplayed());
+        if (js != null) {
+            js.executeScript("arguments[0].click();", element);
+        }
     }
 
     private String[] getProductInfo(WebElement projectNode) {
@@ -74,10 +83,10 @@ public class MainPageTest {
         WebElement nextPage = driver.findElement(By.cssSelector("a[aria-label=\"Page " + pageNumber + "\"]"));
         actions.moveToElement(nextPage).perform();
         waitInSeconds(5);
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].click();", nextPage);
-
+        clickByJs(nextPage);
         waitInSeconds(5);
+
+        // checkpoint: heading
         WebElement heading = driver.findElement(By.cssSelector("h1[data-testid=\"heading\"]"));
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(ExpectedConditions.visibilityOf(heading));
@@ -85,6 +94,12 @@ public class MainPageTest {
 
         String newUrl = driver.getCurrentUrl();
         assertTrue(newUrl.contains("page=" + pageNumber));
+    }
+
+    private boolean pageHeadingCheck(String heading) {
+        WebElement h1 = driver.findElement(By.cssSelector("h1[data-testid=\"heading\"]"));
+        assertTrue(h1.isDisplayed());
+        return h1.getAttribute("innerText").toLowerCase().contains(heading.toLowerCase());
     }
 
     @BeforeEach
@@ -99,6 +114,7 @@ public class MainPageTest {
 
         actions = new Actions(driver);
         mainPage = new MainPage(driver);
+        js = (JavascriptExecutor) driver;
     }
 
     @AfterEach
@@ -106,8 +122,67 @@ public class MainPageTest {
         driver.quit();
     }
 
-    // @Test
-    public void task_1_basic_interacts() throws InterruptedException {
+    @Test
+    public void task_1_1_menu_interacts() throws InterruptedException {
+        mainPage.gloceryMenuButton.click();
+        waitInSeconds(2);
+
+        WebElement drinksMenu = mainPage.drinksSubMenuButton;
+        assertTrue(drinksMenu.isDisplayed());
+
+        // move to Drinks menu
+        actions.moveToElement(drinksMenu).perform();
+        waitInSeconds(5);
+
+        // move to Drinks >> Juice from submenu bar
+        WebElement drinksJuiceMenu = mainPage.drinksJuiceSubMenuButton;
+        assertTrue(drinksJuiceMenu.isDisplayed());
+        actions.moveToElement(drinksJuiceMenu).perform();
+        waitInSeconds(5);
+
+        // move to Drinks >> Coffee from submenu bar
+        WebElement drinksCoffeeMenu = mainPage.drinksCoffeeSubMenuButton;
+        assertTrue(drinksCoffeeMenu.isDisplayed());
+        actions.moveToElement(drinksCoffeeMenu).perform();
+        waitInSeconds(5);
+
+        // move to Home Beauty & Baby menu
+        WebElement homeBeautyBabyMenu = mainPage.homeBeautyBabyMenuButton;
+        assertTrue(homeBeautyBabyMenu.isDisplayed());
+        actions.moveToElement(homeBeautyBabyMenu).perform();
+        waitInSeconds(5);
+
+        // move to JoeFresh menu
+        WebElement joeFreshMenu = mainPage.joeFreshMenuButton;
+        assertTrue(joeFreshMenu.isDisplayed());
+        actions.moveToElement(joeFreshMenu).perform();
+        waitInSeconds(5);
+
+        // move to Discover menu
+        WebElement discoverMenu = mainPage.discoverMenuButton;
+        assertTrue(discoverMenu.isDisplayed());
+        actions.moveToElement(discoverMenu).perform();
+        waitInSeconds(5);
+    }
+
+    private void sortByProducts(int select_index) {
+        // change Sort By
+        WebElement sortBy = driver.findElement(By.cssSelector("button[aria-labelledby=\"sort-by menu-button-:r1:\"]"));
+        actions.moveToElement(sortBy);
+        waitInSeconds(5);
+        sortBy.click();
+        waitInSeconds(5);
+
+
+        WebElement sortBySelection = driver.findElement(By.cssSelector("button[data-testid=\"menu-item\"][data-index=\"" + select_index +"\"]"));
+        actions.moveToElement(sortBySelection);
+        waitInSeconds(5);
+        sortBySelection.click();
+        waitInSeconds(5);
+    }
+
+    @Test
+    public void task_1_2_product_page_interacts() throws InterruptedException {
         mainPage.gloceryMenuButton.click();
         waitInSeconds(2);
 
@@ -123,28 +198,50 @@ public class MainPageTest {
         // select Drinks Juice menu
         drinksJuiceMenu.click();
         waitInSeconds(5);
-        WebElement heading = driver.findElement(By.cssSelector("h1[data-testid=\"heading\"]"));
-        // Wait<WebDriver> wait = new WebDriverWait(driver, Duration.ofSeconds(5));
-        // wait.until(d -> heading.isDisplayed());
-        assertTrue(heading.isDisplayed());
-        assertTrue(heading.getAttribute("innerText").toLowerCase().contains("juice"));
+        assertTrue(pageHeadingCheck("juice"));
+
+        // select Price Low to High
+        sortByProducts(1);
+
+        // select Price High To Low
+        sortByProducts(2);
+
+        // select brand filter of juice products
+        WebElement brandFilter = driver.findElement(By.cssSelector("input[name=\"Sunny Delight\"]"));
+        actions.moveToElement(brandFilter);
+        waitInSeconds(5);
+        clickByJs(brandFilter);
+
+        // wait for page reload
+        waitInSeconds(5);
+        String newUrl = driver.getCurrentUrl();
+        // checkpoint URL's parameter
+        assertTrue(newUrl.contains("productBrand=SUND"));
+    }
+
+    @Test
+    public void task_1_3_footer_interacts() throws InterruptedException {
+        // navigate to Weekly flyer
+        WebElement weeklyFlyer = mainPage.footerWeeklyFlyer;
+        actions.moveToElement(weeklyFlyer).perform();
+        waitInSeconds(5);
+        clickByJs(weeklyFlyer);
+        waitInSeconds(5);
+        assertTrue(pageHeadingCheck("flyer items"));
 
         // navigate to Contact page
-        WebElement contact = mainPage.contactLink;
+        WebElement contact = mainPage.footerContactUs;
         actions.moveToElement(contact).perform();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(d -> contact.isDisplayed());
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("arguments[0].click();", contact);
+        waitInSeconds(5);
+        clickByJs(contact);
 
         waitInSeconds(5);
         WebElement headerTitle = driver.findElement(By.className("contact-us-page__header__title"));
-        wait.until(ExpectedConditions.visibilityOf(headerTitle));
         assertTrue(headerTitle.isDisplayed());
     }
 
     @Test
-    public void task_1_scrapProducts() throws IOException, InterruptedException {
+    public void task_1_4_scrapProducts() throws IOException, InterruptedException {
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         driver.get("https://www.zehrs.ca/food/drinks/juice/c/28230?navid=flyout-L3-Drinks-Juice");
         Thread.sleep(5000);
@@ -166,7 +263,7 @@ public class MainPageTest {
     }
 
     @Test
-    public void task_2_scrapProductsMultiPages() throws IOException, InterruptedException {
+    public void task_2_1_scrapProductsMultiPages() throws IOException, InterruptedException {
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         driver.get("https://www.zehrs.ca/food/drinks/juice/c/28230?navid=flyout-L3-Drinks-Juice");
 
@@ -206,8 +303,40 @@ public class MainPageTest {
         assertFalse(products.isEmpty());
     }
 
-    // @Test
-    public void task_3_searchProducts() throws InterruptedException {
+    @Test
+    public void task_2_2_scrapProductsDifferentPages() throws IOException, InterruptedException {
+        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        driver.get("https://www.zehrs.ca/food/drinks/juice/c/28230?navid=flyout-L3-Drinks-Juice");
+
+        // Find product elements
+        List<WebElement> products = mainPage.products;
+        //waitInSeconds(5000);
+
+        String csvFile = "resources/products_dif_cat.csv";
+        CSVWriter writer = new CSVWriter(new FileWriter(csvFile));
+        String[] header = {"No", "Product Name", "Price", "Image URL"};
+        writer.writeNext(header);
+
+        int count = 1;
+        // write to file and update count
+        count = writeProductInfoToCSV(writer, count);
+
+        // Change to Drinks Coffee page
+        driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        driver.get("https://www.zehrs.ca/food/drinks/coffee/c/28228?navid=flyout-L3-Drinks-Coffee");
+
+        // reload products
+        products = mainPage.products;
+        // write to file and update count
+        writeProductInfoToCSV(writer, count);
+
+        // Close CSV writer and browser
+        writer.close();
+        assertFalse(products.isEmpty());
+    }
+
+    @Test
+    public void task_3_1_searchProducts() throws InterruptedException {
         String searchStr = "milk & cream";
         mainPage.searchField.sendKeys(searchStr);
         mainPage.searchButton.click();
@@ -220,9 +349,42 @@ public class MainPageTest {
         assertTrue(searchResult.getAttribute("innerText").toLowerCase().contains(searchStr.toLowerCase()));
     }
 
-    // @Test
-    public void task_3_handlePopup() throws InterruptedException {
-       // TODO
+    @Test
+    public void task_3_2_handlePopup() throws InterruptedException {
+        WebElement rapidLogo = mainPage.rapidLogo;
+        clickByJs(rapidLogo);
+        waitInSeconds(5);
+
+        // get autocomplete text box
+        WebElement autoComplete = driver.findElement(By.cssSelector("input[id=\"addressAutocomplete\"]"));
+        autoComplete.sendKeys("401 Sunset Ave");
+        waitInSeconds(5);
+
+        // pick first item in the complete list
+        WebElement itemOne = driver.findElement((By.cssSelector(".address-autocomplete__address-list li:nth-child(1)")));
+        clickByJs(itemOne);
+        waitInSeconds(10);
+
+        // check point 1 =>> continue
+        WebElement buttonContinue = driver.findElement(By.cssSelector("button.address-autocomplete-modal__button-continue"));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(ExpectedConditions.elementToBeClickable(buttonContinue));
+        assertTrue(buttonContinue.isEnabled());
+        buttonContinue.click();
+        waitInSeconds(10);
+
+        // check point 2 =>> no service available
+        WebElement searchResult = driver.findElement(By.cssSelector("h1.no-serviceability__title"));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        String msg = "We’re sorry but it looks like we’re not available in your area yet.";
+        wait.until(ExpectedConditions.textToBePresentInElement(searchResult, msg));
+        assertTrue(searchResult.isDisplayed());
+        assertTrue(searchResult.getAttribute("innerText").toLowerCase().contains(msg.toLowerCase()));
+
+        // check point 3 =>> return to main page
+        WebElement returnToZehrs = driver.findElement(By.cssSelector("a.no-serviceability__go-back-button"));
+        returnToZehrs.click();
+        waitInSeconds(5);
     }
 
 }

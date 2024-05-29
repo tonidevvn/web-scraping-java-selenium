@@ -18,18 +18,45 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * MainPageTest class containing test cases for the MainPage class.
+ * This class uses JUnit for testing and Selenium WebDriver for browser automation.
+ */
 public class MainPageTest {
+    // WebDriver instance for interacting with the web browser
     private WebDriver driver;
+
+    // MainPage instance for accessing web elements on the main page
     private MainPage mainPage;
+
+    // JavascriptExecutor instance for executing JavaScript commands
     JavascriptExecutor js;
+
+    // Actions instance for performing complex user interactions
     Actions actions;
+
+    // URL of the website to be tested
     private static final String URL = "https://www.zehrs.ca/";
+
+    // Maximum number of products to be extracted per page
     private static final int MAX_PER_PAGE = 5;
 
+    /**
+     * Method to wait for a specified number of seconds.
+     * Uses implicit wait to pause the test execution.
+     *
+     * @param seconds Number of seconds to wait.
+     */
     private void waitInSeconds(int seconds) {
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(seconds));
     }
 
+    /**
+     * Method to click a web element using JavaScript.
+     * Waits for the element to be displayed before clicking it.
+     *
+     * @param element The web element to be clicked.
+     */
     private void clickByJs(WebElement element) {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(d -> element.isDisplayed());
@@ -38,6 +65,13 @@ public class MainPageTest {
         }
     }
 
+    /**
+     * Method to extract product information from a web element.
+     * Retrieves the product name and price.
+     *
+     * @param projectNode The web element representing a product.
+     * @return An array containing the product name, price, image.
+     */
     private String[] getProductInfo(WebElement projectNode) {
         String name = projectNode.findElement(By.cssSelector("h3[data-testid=\"product-title\"]")).getText();
         String price = "";
@@ -62,6 +96,14 @@ public class MainPageTest {
         return new String[] {name, price, imageUrl};
     }
 
+    /**
+     * Writes product information to a CSV file.
+     *
+     * @param writer The CSVWriter instance used to write data to the CSV file.
+     * @param startIndex The starting index for the product count.
+     * @return The next index after the last written product.
+     * @throws IOException If an I/O error occurs while writing to the CSV file.
+     */
     private int writeProductInfoToCSV(CSVWriter writer, int startIndex) throws IOException {
         List<WebElement> products = mainPage.products;
         int count = startIndex;
@@ -79,6 +121,11 @@ public class MainPageTest {
         return count;
     }
 
+    /**
+     * Switches to a new page based on the provided page number.
+     *
+     * @param pageNumber The number of the page to switch to.
+     */
     private void switchToNewPage(int pageNumber) {
         WebElement nextPage = driver.findElement(By.cssSelector("a[aria-label=\"Page " + pageNumber + "\"]"));
         actions.moveToElement(nextPage).perform();
@@ -96,12 +143,42 @@ public class MainPageTest {
         assertTrue(newUrl.contains("page=" + pageNumber));
     }
 
+    /**
+     * Checks if the page heading matches the expected heading text.
+     *
+     * @param heading The expected heading text.
+     * @return true if the heading matches the expected text, false otherwise.
+     */
     private boolean pageHeadingCheck(String heading) {
         WebElement h1 = driver.findElement(By.cssSelector("h1[data-testid=\"heading\"]"));
         assertTrue(h1.isDisplayed());
         return h1.getAttribute("innerText").toLowerCase().contains(heading.toLowerCase());
     }
 
+    /**
+     * Sorts the products by a given index.
+     *
+     * @param select_index The index to select the sort option.
+     */
+    private void sortByProducts(int select_index) {
+        // change Sort By
+        WebElement sortBy = driver.findElement(By.cssSelector("button[aria-labelledby=\"sort-by menu-button-:r1:\"]"));
+        actions.moveToElement(sortBy);
+        waitInSeconds(5);
+        sortBy.click();
+        waitInSeconds(5);
+
+        WebElement sortBySelection = driver.findElement(By.cssSelector("button[data-testid=\"menu-item\"][data-index=\"" + select_index +"\"]"));
+        actions.moveToElement(sortBySelection);
+        waitInSeconds(5);
+        sortBySelection.click();
+        waitInSeconds(5);
+    }
+
+    /**
+     * Setup method to initialize the WebDriver, JavascriptExecutor, and Actions.
+     * This method runs before each test.
+     */
     @BeforeEach
     public void setUp() {
         ChromeOptions options = new ChromeOptions();
@@ -117,13 +194,22 @@ public class MainPageTest {
         js = (JavascriptExecutor) driver;
     }
 
+    /**
+     * Tear down method to close the WebDriver.
+     * This method runs after each test.
+     */
     @AfterEach
     public void tearDown() {
         driver.quit();
     }
 
+    /**
+     * Test case to interact with the menu and verify visibility of various submenus.
+     *
+     * @throws InterruptedException If thread sleep is interrupted.
+     */
     @Test
-    public void task_1_1_menu_interacts() throws InterruptedException {
+    public void task_1_1_menu_interact() throws InterruptedException {
         mainPage.gloceryMenuButton.click();
         waitInSeconds(2);
 
@@ -165,24 +251,13 @@ public class MainPageTest {
         waitInSeconds(5);
     }
 
-    private void sortByProducts(int select_index) {
-        // change Sort By
-        WebElement sortBy = driver.findElement(By.cssSelector("button[aria-labelledby=\"sort-by menu-button-:r1:\"]"));
-        actions.moveToElement(sortBy);
-        waitInSeconds(5);
-        sortBy.click();
-        waitInSeconds(5);
-
-
-        WebElement sortBySelection = driver.findElement(By.cssSelector("button[data-testid=\"menu-item\"][data-index=\"" + select_index +"\"]"));
-        actions.moveToElement(sortBySelection);
-        waitInSeconds(5);
-        sortBySelection.click();
-        waitInSeconds(5);
-    }
-
+    /**
+     * Test case to interact with the product page and apply various filters.
+     *
+     * @throws InterruptedException If thread sleep is interrupted.
+     */
     @Test
-    public void task_1_2_product_page_interacts() throws InterruptedException {
+    public void task_1_2_product_page_interact() throws InterruptedException {
         mainPage.gloceryMenuButton.click();
         waitInSeconds(2);
 
@@ -219,8 +294,13 @@ public class MainPageTest {
         assertTrue(newUrl.contains("productBrand=SUND"));
     }
 
+    /**
+     * Test case to interact with footer links and verify navigation.
+     *
+     * @throws InterruptedException If thread sleep is interrupted.
+     */
     @Test
-    public void task_1_3_footer_interacts() throws InterruptedException {
+    public void task_1_3_footer_interact() throws InterruptedException {
         // navigate to Weekly flyer
         WebElement weeklyFlyer = mainPage.footerWeeklyFlyer;
         actions.moveToElement(weeklyFlyer).perform();
@@ -240,11 +320,15 @@ public class MainPageTest {
         assertTrue(headerTitle.isDisplayed());
     }
 
+    /**
+     * Test case to scrape product information from a single page and save to a CSV file.
+     *
+     * @throws IOException If an I/O error occurs while writing to the CSV file.
+     */
     @Test
-    public void task_1_4_scrapProducts() throws IOException, InterruptedException {
+    public void task_1_4_scrapProducts() throws IOException {
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         driver.get("https://www.zehrs.ca/food/drinks/juice/c/28230?navid=flyout-L3-Drinks-Juice");
-        Thread.sleep(5000);
         // Find product elements
         List<WebElement> products = mainPage.products;
         //waitInSeconds(5000);
@@ -262,8 +346,13 @@ public class MainPageTest {
         assertFalse(products.isEmpty());
     }
 
+    /**
+     * Test case to scrape products from multiple pages and save to a CSV file.
+     *
+     * @throws IOException If an I/O error occurs while writing to the CSV file.
+     */
     @Test
-    public void task_2_1_scrapProductsMultiPages() throws IOException, InterruptedException {
+    public void task_2_1_scrapProductsMultiPages() throws IOException {
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         driver.get("https://www.zehrs.ca/food/drinks/juice/c/28230?navid=flyout-L3-Drinks-Juice");
 
@@ -303,8 +392,13 @@ public class MainPageTest {
         assertFalse(products.isEmpty());
     }
 
+    /**
+     * Test case to scrape products from different categories and save to a CSV file.
+     *
+     * @throws IOException If an I/O error occurs while writing to the CSV file.
+     */
     @Test
-    public void task_2_2_scrapProductsDifferentPages() throws IOException, InterruptedException {
+    public void task_2_2_scrapProductsDifferentPages() throws IOException {
         driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
         driver.get("https://www.zehrs.ca/food/drinks/juice/c/28230?navid=flyout-L3-Drinks-Juice");
 
@@ -335,20 +429,43 @@ public class MainPageTest {
         assertFalse(products.isEmpty());
     }
 
+    /**
+     * Test method for searching a product.
+     * Verifies that the search result contains the searched text.
+     *
+     * @throws InterruptedException If the thread is interrupted during sleep.
+     */
     @Test
     public void task_3_1_searchProducts() throws InterruptedException {
         String searchStr = "milk & cream";
         mainPage.searchField.sendKeys(searchStr);
         mainPage.searchButton.click();
 
-        waitInSeconds(1);
+        waitInSeconds(5);
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         WebElement searchResult = mainPage.pageTitle;
         wait.until(ExpectedConditions.visibilityOf(searchResult));
         assertTrue(searchResult.isDisplayed());
         assertTrue(searchResult.getAttribute("innerText").toLowerCase().contains(searchStr.toLowerCase()));
+
+        waitInSeconds(5);
+        mainPage.searchClear.click();
+        waitInSeconds(5);
+        searchStr = "coffee";
+        mainPage.searchField.sendKeys(searchStr);
+        mainPage.searchButton.click();
+        waitInSeconds(5);
+        wait.until(ExpectedConditions.visibilityOf(searchResult));
+        assertTrue(searchResult.isDisplayed());
+        assertTrue(searchResult.getAttribute("innerText").toLowerCase().contains(searchStr.toLowerCase()));
     }
 
+    /**
+     * Test method for handling a popup and verifying certain actions on the main page.
+     * Verifies elements like the rapid logo, address autocomplete, continue button, and service availability.
+     *
+     * @throws InterruptedException If the thread is interrupted during sleep.
+     */
     @Test
     public void task_3_2_handlePopup() throws InterruptedException {
         WebElement rapidLogo = mainPage.rapidLogo;
